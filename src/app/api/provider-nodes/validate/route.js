@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { applyCustomHeaders } from "@/shared/utils/customHeaders";
 
 // Fetch with timeout wrapper
 const fetchWithTimeout = (url, options, timeout = 10000) => {
@@ -53,11 +54,14 @@ const getChatErrorMessage = (status) => {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { baseUrl, apiKey, type, modelId } = body;
+    const { baseUrl, apiKey, type, modelId, customHeaders } = body;
 
     if (!baseUrl || !apiKey) {
       return NextResponse.json({ error: "Base URL and API key required" }, { status: 400 });
     }
+
+    // Apply user-defined custom headers (with $API_KEY substitution) on top of defaults.
+    const withCustom = (defaults) => applyCustomHeaders(defaults, customHeaders, { apiKey });
 
     // Validate URL format
     if (!isValidUrl(baseUrl)) {
@@ -72,10 +76,10 @@ export async function POST(request) {
       }
       const embedRes = await fetchWithTimeout(`${normalizedBase}/embeddings`, {
         method: "POST",
-        headers: {
+        headers: withCustom({
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json"
-        },
+        }),
         body: JSON.stringify({ model: modelId.trim(), input: "ping" })
       });
       if (embedRes.ok) {
@@ -104,11 +108,11 @@ export async function POST(request) {
       const modelsUrl = `${normalizedBase}/models`;
       const res = await fetchWithTimeout(modelsUrl, {
         method: "GET",
-        headers: {
+        headers: withCustom({
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
           "Authorization": `Bearer ${apiKey}`
-        }
+        })
       });
 
       if (res.ok) return NextResponse.json({ valid: true });
@@ -122,12 +126,12 @@ export async function POST(request) {
       if (modelId) {
         const chatRes = await fetchWithTimeout(`${normalizedBase}/chat/completions`, {
           method: "POST",
-          headers: {
+          headers: withCustom({
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
             "x-api-key": apiKey,
             "anthropic-version": "2023-06-01"
-          },
+          }),
           body: JSON.stringify({
             model: modelId,
             messages: [{ role: "user", content: "ping" }],
@@ -150,7 +154,7 @@ export async function POST(request) {
     // OpenAI Compatible Validation (Default)
     const modelsUrl = `${baseUrl.replace(/\/$/, "")}/models`;
     const res = await fetchWithTimeout(modelsUrl, {
-      headers: { "Authorization": `Bearer ${apiKey}` },
+      headers: withCustom({ "Authorization": `Bearer ${apiKey}` }),
     });
 
     if (res.ok) return NextResponse.json({ valid: true });
@@ -164,10 +168,10 @@ export async function POST(request) {
     if (modelId) {
       const chatRes = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
-        headers: {
+        headers: withCustom({
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json"
-        },
+        }),
         body: JSON.stringify({
           model: modelId,
           messages: [{ role: "user", content: "ping" }],

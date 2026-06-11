@@ -2,6 +2,7 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { OAUTH_ENDPOINTS, buildKimiHeaders } from "../config/appConstants.js";
 import { buildClineHeaders } from "../../src/shared/utils/clineAuth.js";
+import { applyCustomHeaders } from "../../src/shared/utils/customHeaders.js";
 import { getCachedClaudeHeaders } from "../utils/claudeHeaderCache.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
@@ -178,6 +179,14 @@ export class DefaultExecutor extends BaseExecutor {
         }
       }
     }
+
+    // Apply user-defined custom headers last so they override defaults
+    // (e.g. lets `Authorization: Bearer $API_KEY` replace the auto-built Authorization)
+    applyCustomHeaders(headers, credentials?.providerSpecificData?.customHeaders, {
+      apiKey: credentials?.apiKey,
+      accessToken: credentials?.accessToken,
+      refreshToken: credentials?.refreshToken,
+    });
 
     if (stream) headers["Accept"] = "text/event-stream";
     return headers;

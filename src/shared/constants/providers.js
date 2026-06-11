@@ -204,6 +204,36 @@ export function isCustomEmbeddingProvider(providerId) {
   return typeof providerId === "string" && providerId.startsWith(CUSTOM_EMBEDDING_PREFIX);
 }
 
+// Normalize a customHeaders payload into [{key, value}] with trimmed keys.
+// Drops entries with empty key. Values keep their original casing/spacing so
+// substitution tokens like "Bearer $API_KEY" round-trip cleanly.
+export function sanitizeCustomHeaders(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const entry of input) {
+    if (!entry || typeof entry !== "object") continue;
+    const key = typeof entry.key === "string" ? entry.key.trim() : "";
+    const value = typeof entry.value === "string" ? entry.value : "";
+    if (!key) continue;
+    const dedupeKey = key.toLowerCase();
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    out.push({ key, value });
+  }
+  return out;
+}
+
+// Resolve $VAR / ${VAR} tokens against a substitution map. Unknown tokens stay
+// as literal text so users see the placeholder if they typo a variable name.
+export function resolveCustomHeaderValue(value, vars = {}) {
+  if (typeof value !== "string" || !value) return "";
+  return value.replace(/\$\{([A-Z0-9_]+)\}|\$([A-Z0-9_]+)/g, (match, braced, plain) => {
+    const name = braced || plain;
+    return Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name] ?? "") : match;
+  });
+}
+
 // All providers (combined)
 export const AI_PROVIDERS = { ...FREE_PROVIDERS, ...FREE_TIER_PROVIDERS, ...OAUTH_PROVIDERS, ...APIKEY_PROVIDERS, ...WEB_COOKIE_PROVIDERS };
 

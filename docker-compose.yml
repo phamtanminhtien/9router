@@ -1,0 +1,18 @@
+services:
+  9router:
+    image: decolua/9router:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 9router
+    restart: unless-stopped
+    ports:
+      - "20120:20120"
+    volumes:
+      - ./data:/app/data
+      - ./data-home:/app/data-home
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/app/data
+      - NODE_ENV=production

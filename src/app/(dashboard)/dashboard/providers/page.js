@@ -11,6 +11,7 @@ import {
   Modal,
   Select,
   Toggle,
+  CustomHeadersEditor,
 } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS } from "@/shared/constants/config";
@@ -848,6 +849,7 @@ function AddOpenAICompatibleModal({ isOpen, onClose, onCreated }) {
     apiType: "chat",
     baseUrl: "https://api.openai.com/v1",
   });
+  const [customHeaders, setCustomHeaders] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [checkKey, setCheckKey] = useState("");
   const [checkModelId, setCheckModelId] = useState("");
@@ -881,6 +883,7 @@ function AddOpenAICompatibleModal({ isOpen, onClose, onCreated }) {
           prefix: formData.prefix,
           apiType: formData.apiType,
           baseUrl: formData.baseUrl,
+          customHeaders,
           type: "openai-compatible",
         }),
       });
@@ -893,6 +896,7 @@ function AddOpenAICompatibleModal({ isOpen, onClose, onCreated }) {
           apiType: "chat",
           baseUrl: "https://api.openai.com/v1",
         });
+        setCustomHeaders([]);
         setCheckKey("");
         setValidationResult(null);
       }
@@ -914,6 +918,7 @@ function AddOpenAICompatibleModal({ isOpen, onClose, onCreated }) {
           apiKey: checkKey,
           type: "openai-compatible",
           modelId: checkModelId.trim() || undefined,
+          customHeaders,
         }),
       });
       const data = await res.json();
@@ -984,6 +989,7 @@ function AddOpenAICompatibleModal({ isOpen, onClose, onCreated }) {
           placeholder="https://api.openai.com/v1"
           hint="Use the base URL (ending in /v1) for your OpenAI-compatible API."
         />
+        <CustomHeadersEditor value={customHeaders} onChange={setCustomHeaders} />
         <Input
           label="API Key (for Check)"
           type="password"
@@ -1042,6 +1048,7 @@ function AddAnthropicCompatibleModal({ isOpen, onClose, onCreated }) {
     prefix: "",
     baseUrl: "https://api.anthropic.com/v1",
   });
+  const [customHeaders, setCustomHeaders] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [checkKey, setCheckKey] = useState("");
   const [checkModelId, setCheckModelId] = useState("");
@@ -1053,6 +1060,7 @@ function AddAnthropicCompatibleModal({ isOpen, onClose, onCreated }) {
       setValidationResult(null);
       setCheckKey("");
       setCheckModelId("");
+      setCustomHeaders([]);
     }
   }, [isOpen]);
 
@@ -1072,6 +1080,7 @@ function AddAnthropicCompatibleModal({ isOpen, onClose, onCreated }) {
           name: formData.name,
           prefix: formData.prefix,
           baseUrl: formData.baseUrl,
+          customHeaders,
           type: "anthropic-compatible",
         }),
       });
@@ -1104,6 +1113,7 @@ function AddAnthropicCompatibleModal({ isOpen, onClose, onCreated }) {
           apiKey: checkKey,
           type: "anthropic-compatible",
           modelId: checkModelId.trim() || undefined,
+          customHeaders,
         }),
       });
       const data = await res.json();
@@ -1166,6 +1176,7 @@ function AddAnthropicCompatibleModal({ isOpen, onClose, onCreated }) {
           placeholder="https://api.anthropic.com/v1"
           hint="Use the base URL (ending in /v1) for your Anthropic-compatible API. The system will append /messages."
         />
+        <CustomHeadersEditor value={customHeaders} onChange={setCustomHeaders} />
         <Input
           label="API Key (for Check)"
           type="password"
