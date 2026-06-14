@@ -7,9 +7,6 @@ import {
   CardSkeleton,
   Badge,
   Button,
-  Input,
-  Modal,
-  Select,
   Toggle,
   CustomHeadersEditor,
 } from "@/shared/components";
@@ -27,6 +24,7 @@ import { getErrorCode, getRelativeTime } from "@/shared/utils";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
+import AddCompatibleModal from "./components/AddCompatibleModal";
 
 function getStatusDisplay(connected, error, errorCode) {
   const parts = [];
@@ -558,7 +556,8 @@ export default function ProvidersPage() {
         </div>
       </div> */}
 
-      <AddOpenAICompatibleModal
+      <AddCompatibleModal
+        variant="openai"
         isOpen={showAddCompatibleModal}
         onClose={() => setShowAddCompatibleModal(false)}
         onCreated={(node) => {
@@ -566,7 +565,8 @@ export default function ProvidersPage() {
           setShowAddCompatibleModal(false);
         }}
       />
-      <AddAnthropicCompatibleModal
+      <AddCompatibleModal
+        variant="anthropic"
         isOpen={showAddAnthropicCompatibleModal}
         onClose={() => setShowAddAnthropicCompatibleModal(false)}
         onCreated={(node) => {
