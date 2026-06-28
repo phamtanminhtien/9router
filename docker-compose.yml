@@ -7,12 +7,24 @@ services:
     container_name: 9router
     restart: unless-stopped
     ports:
-      - "20120:20120"
+      - "20128:20128"
     volumes:
       - ./data:/app/data
       - ./data-home:/app/data-home
     env_file:
       - .env
     environment:
-      - DATA_DIR=/app/data
-      - NODE_ENV=production
+      DATA_DIR: /app/data
+      PORT: "20128"
+      HOSTNAME: "0.0.0.0"
+      NODE_ENV: production
+      HEADROOM_URL: http://headroom:8787
+    depends_on:
+      - headroom
+
+  headroom:
+    image: ghcr.io/chopratejas/headroom:latest
+    container_name: headroom
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
