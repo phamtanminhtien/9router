@@ -86,7 +86,7 @@ if ! docker buildx version >/dev/null 2>&1; then
   exit 1
 fi
 
-BUILDER_NAME="9router-builder"
+BUILDER_NAME="nine-router-builder"
 if ! docker buildx inspect "$BUILDER_NAME" >/dev/null 2>&1; then
   docker buildx create --name "$BUILDER_NAME" --use
 else
