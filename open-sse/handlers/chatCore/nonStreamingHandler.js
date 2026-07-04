@@ -6,6 +6,7 @@ import { addBufferToUsage, filterUsageForFormat } from "../../utils/usageTrackin
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
 import { parseSSEToOpenAIResponse } from "./sseToJsonHandler.js";
+import { convertChatCompletionToResponses } from "../../transformer/streamToJsonConverter.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats } from "./requestDetail.js";
 import { appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
@@ -192,6 +193,11 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
     return ollamaBodyToOpenAI(responseBody);
   }
 
+  // OpenAI chat.completion → Responses API (e.g. /v1/responses with JSON upstream)
+  if (sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI) {
+    return convertChatCompletionToResponses(responseBody);
+  }
+
   return responseBody;
 }
 
@@ -252,8 +258,10 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     }
   }
 
+  const isResponsesApiResponse = translatedResponse?.object === "response";
+
   // Ensure OpenAI-required fields
-  if (!isClaudeMessageResponse) {
+  if (!isClaudeMessageResponse && !isResponsesApiResponse) {
     if (!translatedResponse.object) translatedResponse.object = "chat.completion";
     if (!translatedResponse.created) translatedResponse.created = Math.floor(Date.now() / 1000);
   }

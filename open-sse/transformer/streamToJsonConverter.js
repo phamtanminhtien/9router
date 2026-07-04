@@ -4,6 +4,108 @@
  * Used when client requests non-streaming but provider forces streaming (e.g., Codex)
  */
 
+import { ROLE, RESPONSES_ITEM } from "../translator/schema/index.js";
+
+function toResponseId(id) {
+  const raw = String(id || "").trim();
+  if (!raw) return `resp_${Date.now()}`;
+  if (raw.startsWith("resp_")) return raw;
+  return `resp_${raw.replace(/^chatcmpl-/, "")}`;
+}
+
+function mapUsage(usage = {}) {
+  const inputTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0;
+  const outputTokens = usage.output_tokens ?? usage.completion_tokens ?? 0;
+  const totalTokens = usage.total_tokens ?? (inputTokens + outputTokens);
+  const mapped = { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: totalTokens };
+  if (usage.input_tokens_details) mapped.input_tokens_details = usage.input_tokens_details;
+  if (usage.output_tokens_details) mapped.output_tokens_details = usage.output_tokens_details;
+  if (usage.prompt_tokens_details?.cached_tokens != null) {
+    mapped.input_tokens_details = {
+      ...mapped.input_tokens_details,
+      cached_tokens: usage.prompt_tokens_details.cached_tokens,
+    };
+  }
+  if (usage.completion_tokens_details?.reasoning_tokens != null) {
+    mapped.output_tokens_details = {
+      ...mapped.output_tokens_details,
+      reasoning_tokens: usage.completion_tokens_details.reasoning_tokens,
+    };
+  }
+  return mapped;
+}
+
+/**
+ * Convert a non-streaming OpenAI chat.completion JSON body to Responses API format.
+ * Used when /v1/responses clients receive chat.completion from providers that default to JSON.
+ */
+export function convertChatCompletionToResponses(completion) {
+  if (!completion || typeof completion !== "object") return completion;
+  if (completion.object === "response") return completion;
+  if (completion.object !== "chat.completion") return completion;
+
+  const choice = completion.choices?.[0];
+  const message = choice?.message || {};
+  const responseId = toResponseId(completion.id);
+  const output = [];
+  let outputIndex = 0;
+
+  const reasoning = message.reasoning_content || "";
+  if (reasoning) {
+    output.push({
+      id: `rs_${responseId}_${outputIndex}`,
+      type: RESPONSES_ITEM.REASONING,
+      summary: [{ type: RESPONSES_ITEM.SUMMARY_TEXT, text: reasoning }],
+    });
+    outputIndex++;
+  }
+
+  const text = typeof message.content === "string" ? message.content : "";
+  if (text || (!reasoning && !(message.tool_calls || []).length)) {
+    output.push({
+      id: `msg_${responseId}_${outputIndex}`,
+      type: RESPONSES_ITEM.MESSAGE,
+      role: ROLE.ASSISTANT,
+      content: [{
+        type: RESPONSES_ITEM.OUTPUT_TEXT,
+        annotations: [],
+        logprobs: [],
+        text,
+      }],
+    });
+    outputIndex++;
+  }
+
+  for (const tc of message.tool_calls || []) {
+    const callId = tc.id || `call_${outputIndex}`;
+    const args = typeof tc.function?.arguments === "string"
+      ? tc.function.arguments
+      : JSON.stringify(tc.function?.arguments || {});
+    output.push({
+      id: `fc_${callId}`,
+      type: RESPONSES_ITEM.FUNCTION_CALL,
+      call_id: callId,
+      name: tc.function?.name || "",
+      arguments: args,
+    });
+    outputIndex++;
+  }
+
+  const result = {
+    id: responseId,
+    object: "response",
+    created_at: completion.created || Math.floor(Date.now() / 1000),
+    status: "completed",
+    background: false,
+    error: null,
+    output,
+    usage: mapUsage(completion.usage),
+  };
+
+  if (completion.model) result.model = completion.model;
+  return result;
+}
+
 /**
  * Process a single SSE message and update state accordingly.
  */

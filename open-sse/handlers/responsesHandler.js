@@ -6,7 +6,7 @@
 import { handleChatCore } from "./chatCore.js";
 import { convertResponsesApiFormat } from "../translator/formats/responsesApi.js";
 import { createResponsesApiTransformStream } from "../transformer/responsesTransformer.js";
-import { convertResponsesStreamToJson } from "../transformer/streamToJsonConverter.js";
+import { convertChatCompletionToResponses, convertResponsesStreamToJson } from "../transformer/streamToJsonConverter.js";
 import { SSE_HEADERS_CORS } from "../utils/sseConstants.js";
 
 /**
@@ -93,7 +93,29 @@ export async function handleResponsesCore({ body, modelInfo, credentials, log, o
     };
   }
 
-  // Case 3: Non-SSE response (error or non-streaming from provider) - return as-is
+  // Case 3: Non-SSE JSON — convert chat.completion upstream bodies to Responses API shape
+  if (contentType.includes("application/json")) {
+    try {
+      const body = await response.clone().json();
+      const converted = convertChatCompletionToResponses(body);
+      if (converted !== body) {
+        return {
+          success: true,
+          response: new Response(JSON.stringify(converted), {
+            status: response.status,
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }),
+        };
+      }
+    } catch (error) {
+      console.error("[Responses API] JSON response conversion failed:", error);
+    }
+  }
+
   return result;
 }
 
