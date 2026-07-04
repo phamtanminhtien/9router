@@ -25,6 +25,7 @@ export default {
     clientId: "b1a00492-073a-47ea-816f-4c329264a828",
     tokenUrl: "https://auth.x.ai/oauth2/token",
     refreshUrl: "https://auth.x.ai/oauth2/token",
+    defaultStream: false,
   },
   models: [
     { id: "grok-4", name: "Grok 4" },

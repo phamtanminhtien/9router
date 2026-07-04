@@ -69,7 +69,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   const clientRequestedStreaming = body.stream === true || sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI;
   const providerRequiresStreaming = PROVIDERS[provider]?.forceStream === true;
+  const providerDefaultStream = PROVIDERS[provider]?.defaultStream;
   let stream = providerRequiresStreaming ? true : (body.stream !== false);
+  if (body.stream === undefined && providerDefaultStream === false) {
+    stream = false;
+  }
 
   // Image generation models require non-streaming (Google v1internal:generateContent)
   const modelType = getModelType(alias, model);

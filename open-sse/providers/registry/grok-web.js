@@ -20,6 +20,7 @@ export default {
     baseUrl: "https://grok.com/rest/app-chat/conversations/new",
     format: "grok-web",
     authType: "cookie",
+    defaultStream: false,
   },
   models: [
     { id: "grok-3", name: "Grok 3" },
