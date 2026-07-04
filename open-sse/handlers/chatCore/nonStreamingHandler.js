@@ -69,6 +69,10 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   if (targetFormat === FORMATS.OPENAI && sourceFormat === FORMATS.CLAUDE) {
     return openAICompletionToClaudeMessage(responseBody);
   }
+  // OpenAI chat.completion → Responses API (e.g. /v1/responses with JSON upstream)
+  if (sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI) {
+    return convertChatCompletionToResponses(responseBody);
+  }
   if (targetFormat === FORMATS.OPENAI) return responseBody;
 
   // Gemini / Antigravity
@@ -191,11 +195,6 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
   // Ollama
   if (targetFormat === FORMATS.OLLAMA) {
     return ollamaBodyToOpenAI(responseBody);
-  }
-
-  // OpenAI chat.completion → Responses API (e.g. /v1/responses with JSON upstream)
-  if (sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI) {
-    return convertChatCompletionToResponses(responseBody);
   }
 
   return responseBody;
